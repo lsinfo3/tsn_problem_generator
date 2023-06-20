@@ -1,7 +1,6 @@
 from math import inf
 
 from export.to_json import to_json
-from lib.stream import Stream
 from lib.z_test_util import link, get_tmp_filepath
 from stream_factory.create_streams import create_streams_for_topology
 from topology_factory.combine_topologies import combine_topologies
@@ -14,8 +13,8 @@ from visualization.topology_visualization import topo_to_graph, visualize_topolo
 if __name__ == '__main__':
     #topo2 = linear_branches(main_length=3, branches_per_main_switch=2, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=False, num_join_points=2)
     topo1 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
-    topo2 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
-    #topo2 = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=12, switch_link_speed=1e10, host_link_speed=1e9)
+    #topo2 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
+    topo2 = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=12, switch_link_speed=1e10, host_link_speed=1e9)
 
     topo = combine_topologies(topo1, topo2, add_name_prefixes=True)
 
