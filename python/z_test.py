@@ -11,12 +11,22 @@ from visualization.topology_visualization import topo_to_graph, visualize_topolo
 
 
 if __name__ == '__main__':
-    #topo2 = linear_branches(main_length=3, branches_per_main_switch=2, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=False, num_join_points=2)
-    topo1 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
+    #topo1 = linear_branches(main_length=3, branches_per_main_switch=2, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=False, num_join_points=2)
     #topo2 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
-    topo2 = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=12, switch_link_speed=1e10, host_link_speed=1e9)
+    #topo3 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
+    #topo4 = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=12, switch_link_speed=1e10, host_link_speed=1e9)
 
-    topo = combine_topologies(topo1, topo2, add_name_prefixes=True)
+    #topo = combine_topologies(topo2, topo4, add_name_prefixes=True)
+
+    # Test combining multiple topologies
+    topo1 = linear_branches(main_length=6, branches_per_main_switch=0, branch_length=0, hosts_per_branch_switch=0, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=6)
+    topo11 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r1_")
+    topo12 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r2_")
+    topo13 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r3_")
+
+    topo = combine_topologies(topo1, topo11, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
+    topo = combine_topologies(topo, topo12, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
+    topo = combine_topologies(topo, topo13, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
 
     streams = []
     streams += create_streams_for_topology(topo, num_streams=150, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], max_pathlen=2)

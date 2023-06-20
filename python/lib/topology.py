@@ -20,8 +20,9 @@ class Node(object):
 
     def __post_init__(self) -> None:
         if "-" in self.name: raise ValueError("Node name may not contain '-'")
-        valid_types = ("switch", "host")
-        if self.type not in valid_types: raise ValueError("Node type must be one of %s, not %s" % (valid_types, self.type))
+        valid_types = ("switch", "host", "controller", "sensor")
+        if self.type not in valid_types:
+            raise ValueError("Node type must be one of %s, not %s" % (valid_types, self.type))
 
     def addNeigh(self, n2: Node, bw: float) -> None:
         inport = self.setAndGetNextPort()
@@ -45,6 +46,12 @@ def Switch(name: str) -> Node:
 
 def Host(name: str) -> Node:
     return Node(name, "host")
+
+def Controller(name: str) -> Node:
+    return Node(name, "controller")
+
+def Sensor(name: str) -> Node:
+    return Node(name, "sensor")
 
 
 @dataclass(eq=True, frozen=True, order=True)
@@ -120,7 +127,15 @@ class Topology(object):
 
     @property
     def hosts(self) -> List[Node]:
-        return [n for n in self.nodes if n.type == "host"]
+        return [n for n in self.nodes if n.type in {"host", "controller", "sensor"}]
+
+    @property
+    def controllers(self) -> List[Node]:
+        return [n for n in self.nodes if n.type == "controller"]
+
+    @property
+    def sensors(self) -> List[Node]:
+        return [n for n in self.nodes if n.type == "sensor"]
 
     @property
     def switches(self) -> List[Node]:
@@ -130,15 +145,17 @@ class Topology(object):
     def joinPoints(self) -> List[Node]:
         return [n for n in self.nodes if n.joinPoint]
 
-    def recreate_with_prefix(self, prefix: str) -> None:
+    def reset_with_prefix(self, prefix: str) -> Topology:
         # Clear everything that might use the has of nodes internally
         self.streams_per_link.clear()
-        self.max_delays.clear()
-        self.max_bandwidths.clear()
-        self.max_queue_sizes.clear()
+        if self.max_delays: self.max_delays.clear()
+        if self.max_bandwidths: self.max_bandwidths.clear()
+        if self.max_queue_sizes: self.max_queue_sizes.clear()
 
         for node in self.nodes:
             node.name = prefix + node.name
+
+        return self
 
     def to_json_dict(self) -> dict:
         return {
