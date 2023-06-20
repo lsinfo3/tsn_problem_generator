@@ -57,6 +57,18 @@ class Stream(object):
     def init_local_streams(self):
         self.localStreams = [LocalStream(self, i) for i in range(len(self.path))]
 
+    def to_json_dict(self):
+        return {
+            "id": self.id,
+            "label": self.label,
+            "path": [self.path[0].n1.name] + [l.n2.name for l in self.path],
+            "priority": self.priority,
+            "rate": self.rate,
+            "burst": self.burst,
+            "minFrameSize": self.minFrameSize,
+            "maxFrameSize": self.maxFrameSize
+        }
+
     def clone(self):
         return Stream(self._label, self._path, self._priority, self._rate, self._burst, self._minFrameSize, self._maxFrameSize)
 

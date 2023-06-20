@@ -143,7 +143,8 @@ class Topology(object):
     def to_json_dict(self) -> dict:
         return {
             "nodes": self.nodes,
-            "links": list(self.links)
+            "links": list(self.links),
+            "streams": sorted(list(self.get_all_streams()), key=lambda x: x.id)
         }
 
     def add_node(self, n: Node) -> Node:
