@@ -27,6 +27,8 @@ if __name__ == '__main__':
     streams += create_streams_for_topology(topo, num_streams=75, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=6, max_pathlen=6)
     streams += create_streams_for_topology(topo, num_streams=25, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=7, max_pathlen=7)
 
+    topo.add_streams(streams)
+
     # prio = (0,   1,   2,   3,   4,    5,    6,     7    )
     per_hop_guarantees = (inf, inf, inf, inf, 50e6, 10e6, 500e3, 150e3)
     topo.update_guarantees_all_links(per_hop_guarantees)
