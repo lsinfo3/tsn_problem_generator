@@ -21,5 +21,3 @@ class MyEncoder(JSONEncoder):
         if isinstance(o, Stream):
             return o.to_json_dict()
         return JSONEncoder.default(self, o)
-
-

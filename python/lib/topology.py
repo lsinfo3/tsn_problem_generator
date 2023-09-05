@@ -25,20 +25,28 @@ class Node(object):
             raise ValueError("Node type must be one of %s, not %s" % (valid_types, self.type))
 
     def addNeigh(self, n2: Node, bw: float) -> None:
-        inport = self.setAndGetNextPort()
-        outport = n2.setAndGetNextPort()
-        self.neighs.append(Link(self, n2, bw, inport, outport))
-        n2.neighs.append(Link(n2, self, bw, outport, inport))
+        if n2 not in [l.get_other(self) for l in self.neighs]:
+            inport = self.setAndGetNextPort()
+            outport = n2.setAndGetNextPort()
+            self.neighs.append(Link(self, n2, bw, inport, outport))
+            n2.neighs.append(Link(n2, self, bw, outport, inport))
 
     def setAndGetNextPort(self) -> int:
         self.lastUsedPort += 1
         return self.lastUsedPort
+
+    def numNeighorSwitches(self) -> int:
+        return len([l for l in self.neighs if l.get_other(self).type == "switch"])
 
     def to_json_dict(self) -> dict:
         return {
             "name": self.name,
             "type": self.type
         }
+
+    @property
+    def is_host(self) -> bool:
+        return self.type in ["host", "controller", "sensor"]
 
 
 def Switch(name: str) -> Node:
@@ -144,6 +152,9 @@ class Topology(object):
     @property
     def joinPoints(self) -> List[Node]:
         return [n for n in self.nodes if n.joinPoint]
+
+    def getDanglingSwitches(self) -> List[Node]:
+        return [n for n in self.nodes if n.type == "switch" and n.numNeighorSwitches() == 1]
 
     def reset_with_prefix(self, prefix: str) -> Topology:
         # Clear everything that might use the has of nodes internally

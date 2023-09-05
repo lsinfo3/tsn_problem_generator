@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+import platform
 
 
 def link_osc8(uri: str, label: str = None):
@@ -20,7 +21,10 @@ def link(path: str):
 def get_tmp_filepath(path: str, timestamp_suffix: bool = True):
     path = path.replace("\\", "/")
 
-    file = f"/tmp/{path}"
+    if platform.system() == "Linux":
+        file = f"/tmp/{path}"
+    elif platform.system() == "Windows":
+        file = f"C:\\tmp\\{path}"
     file2 = file
 
     if timestamp_suffix:

@@ -1,9 +1,8 @@
-from math import inf
-
 import networkx as nx
 import matplotlib.pyplot as plt
 
 from typing import Dict, Tuple, List
+
 from networkx import Graph
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -11,16 +10,16 @@ from lib.topology import Topology, Link
 
 
 def visualize_topology(topo: Topology, color_per_prio_dict: Dict[Link, float], pos: dict = None, filepath = "/tmp/last_topo.pdf", title = "", mincolor = -1, maxcolor = -1):
-    G, pos2 = topo_to_graph(topo)
+    G = topo_to_graph(topo)
     if pos == None:
-        pos = pos2
+        pos = graph_positions(G)
 
     with PdfPages(filepath) as pdf:
         mincolor, maxcolor, colors = edge_colors(G, color_per_prio_dict, mincolor, maxcolor)
 
         options = {
             "node_size": [
-                180 if n["origin"].type == "switch" else 60
+                60 if n["origin"].type == "switch" else 20
                 for n in G._node.values()
             ],
             "node_color": [
@@ -75,7 +74,7 @@ def edge_colors(G: Graph, delays: Dict[Link, float], mincolor = -1, maxcolor = -
     return mincolor, maxcolor, ret
 
 
-def topo_to_graph(topo: Topology) -> Tuple[Graph, dict]:
+def topo_to_graph(topo: Topology) -> Graph:
     G = nx.Graph()
 
     for n in topo.nodes:
@@ -88,9 +87,12 @@ def topo_to_graph(topo: Topology) -> Tuple[Graph, dict]:
             G.add_edge(l.n1.name, l.n2.name)
             G.edges[(l.n1.name, l.n2.name)]["origin"] = l
 
-    pos = nx.spring_layout(G, k=0.9, iterations=2000)
+    return G
 
-    return G, pos
+
+def graph_positions(G: Graph) -> dict:
+    #return nx.spring_layout(G, k=1, iterations=2000)
+    return nx.kamada_kawai_layout(G)
 
 
 def convert_bps_to_str(bps: float) -> str:

@@ -1,24 +1,11 @@
-import math
 import random
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Set
 
 from lib.stream import Stream
 from lib.topology import Topology
+from lib.y_random_util import urandom_float_between, unpack_random
 
-MyRangeType = Union[int, float, List, Tuple]
-
-
-def unpack_random(varrange):
-    if type(varrange) in (tuple, list):
-        if len(varrange) < 2 or len(varrange) > 3:
-            raise ValueError("range can either be a number, or a list [min, max], or a list [min, max, 'log']")
-        elif len(varrange) == 3 and varrange[2] == "log":
-            return exprandom_float_between(varrange[0], varrange[1])
-        elif len(varrange) == 3:
-            raise ValueError("range[2] can only be 'log' for logarithmically scaled random choice")
-        else:
-            return urandom_int_between(varrange[0], varrange[1])
-    return varrange
+MyRangeType = Union[int, float, List, Tuple, Set]
 
 
 def create_streams_for_topology(topo: Topology, num_streams: int, burst_range: MyRangeType, rate_range: MyRangeType, prio_range: MyRangeType, min_pathlen: int = 1, max_pathlen: int = None, only_switch_controller_paths: bool = False) -> List[Stream]:
@@ -52,9 +39,9 @@ def create_streams_for_topology(topo: Topology, num_streams: int, burst_range: M
                 if len(n2_choices) == 0:
                     printed_warnings += 1
                     if printed_warnings == 5:
-                        print(f"Further warnings suppressed...")
+                        print(f"  Further warnings suppressed...")
                     elif printed_warnings < 5:
-                        print(f"Warning: no suitable pairs with {min_pathlen=}, {max_pathlen=}")
+                        print(f"  Warning: no suitable pairs with {min_pathlen=}, {max_pathlen=}")
                 else:
                     n2, = random.sample(n2_choices, 1)
 
@@ -74,14 +61,14 @@ def create_streams_for_topology(topo: Topology, num_streams: int, burst_range: M
                 for j in range(100):
                     if len(n2_choices) > 0: break
                     n1, = random.sample(devices, 1)
-                    n2_choices = [n for n in topo.get_other_devices_within_distance(n1, min_pathlen, max_pathlen) if n.type == "host"]
+                    n2_choices = [n for n in topo.get_other_devices_within_distance(n1, min_pathlen, max_pathlen) if n.is_host]
 
                 if len(n2_choices) == 0:
                     printed_warnings += 1
                     if printed_warnings == 5:
-                        print(f"Further warnings suppressed...")
+                        print(f"  Further warnings suppressed...")
                     elif printed_warnings < 5:
-                        print(f"Warning: no suitable pairs with {min_pathlen=}, {max_pathlen=}")
+                        print(f"  Warning: no suitable pairs with {min_pathlen=}, {max_pathlen=}")
                 else:
                     n2, = random.sample(n2_choices, 1)
 
@@ -101,12 +88,3 @@ def create_streams_for_topology(topo: Topology, num_streams: int, burst_range: M
 
     return streams
 
-
-def urandom_int_between(min: int, max: int) -> int:
-    return random.choice(range(min, max+1))
-
-def urandom_float_between(min: float, max: float) -> float:
-    return random.random() * (max - min) + min
-
-def exprandom_float_between(min: float, max: float) -> float:
-    return math.exp(urandom_float_between(math.log(min), math.log(max)))

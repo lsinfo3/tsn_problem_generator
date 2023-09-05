@@ -1,58 +1,87 @@
-from math import inf
+import os
 
-from export.to_json import to_json
+from factory_profiles.scenario_factory_profiles import industrial_scenario, automotive_scenario
 from lib.z_test_util import link, get_tmp_filepath
-from stream_factory.create_streams import create_streams_for_topology
-from topology_factory.combine_topologies import combine_topologies
-from topology_factory.linear_branches import linear_branches
-from topology_factory.two_layer_tree import two_layer_tree
-from visualization.topology_visualization import topo_to_graph, visualize_topology
+from visualization.topology_visualization import topo_to_graph, visualize_topology, graph_positions
 
+HOW_MANY = 20
+#SCENARIO = "industrial"
+SCENARIO = "automotive"
+SIZE = "big"
+PDFS = []
+REMOVE_SMALL_PDFs = True
 
 
 if __name__ == '__main__':
-    #topo1 = linear_branches(main_length=3, branches_per_main_switch=2, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=False, num_join_points=2)
-    #topo2 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
-    #topo3 = linear_branches(main_length=6, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=4, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2)
-    #topo4 = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=12, switch_link_speed=1e10, host_link_speed=1e9)
+    for i in range(HOW_MANY):
+        print(f"Generating topology {i+1}/{HOW_MANY} ({SCENARIO}, size {SIZE}) ...")
 
-    #topo = combine_topologies(topo2, topo4, add_name_prefixes=True)
+        if SCENARIO == "industrial":
+            topo = industrial_scenario(SIZE)
+        elif SCENARIO == "automotive":
+            topo = automotive_scenario()
+        else:
+            raise ValueError(f"scenario {SCENARIO} unknown")
 
-    # Test combining multiple topologies
-    topo1 = linear_branches(main_length=6, branches_per_main_switch=0, branch_length=0, hosts_per_branch_switch=0, main_link_speed=1e10, branch_link_speed=1e8, connect_to_ring=True, num_join_points=6)
-    topo11 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r1_")
-    topo12 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r2_")
-    topo13 = linear_branches(main_length=4, branches_per_main_switch=1, branch_length=2, hosts_per_branch_switch=3, main_link_speed=1e9, branch_link_speed=1e8, connect_to_ring=True, num_join_points=2).reset_with_prefix("r3_")
+        JSON_FILE = get_tmp_filepath("problem_gen/json.json")
+        #to_json(topo, JSON_FILE)
+        #print(f"  Exported JSON to {link(JSON_FILE)}")
 
-    topo = combine_topologies(topo1, topo11, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
-    topo = combine_topologies(topo, topo12, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
-    topo = combine_topologies(topo, topo13, add_name_prefixes=False, removeJoinPointsUsed=True, removeJoinPointsTopo2=True)
+        for colorization in ["bw", "burst"]:
+            PDF_FILE = get_tmp_filepath(f"problem_gen/pdf-{colorization}.pdf")
+            PDFS += [PDF_FILE]
+            pos = graph_positions(topo_to_graph(topo))
 
-    streams = []
-    streams += create_streams_for_topology(topo, num_streams=150, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], max_pathlen=2)
-    streams += create_streams_for_topology(topo, num_streams=150, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=3, max_pathlen=3)
-    streams += create_streams_for_topology(topo, num_streams=75, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=4, max_pathlen=4)
-    streams += create_streams_for_topology(topo, num_streams=75, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=5, max_pathlen=5)
-    streams += create_streams_for_topology(topo, num_streams=75, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=6, max_pathlen=6)
-    streams += create_streams_for_topology(topo, num_streams=25, burst_range=[64 * 8, 1000 * 8], rate_range=[10e3, 50e6, "log"], prio_range=[4, 7], min_pathlen=7, max_pathlen=7)
+            # link color selection
+            if colorization == "bw":
+                bw_dict = {l: l.bandwidth for l in topo.links}
+                visualize_topology(topo, bw_dict, pos=pos, filepath=PDF_FILE, title="Topology bandwidth overview")
+            elif colorization == "burst":
+                burst_dict = {l: sum([s.burst for s in topo.streams_per_link.get(l, dict()).values()]) / l.bandwidth * 1e9 for l in topo.links}
+                visualize_topology(topo, burst_dict, pos=pos, filepath=PDF_FILE, title="Topology burst overview")
 
-    topo.add_streams(streams)
+            #print(f"  Exported Visualization to {link(PDF_FILE)}")
 
-    # prio = (0,   1,   2,   3,   4,    5,    6,     7    )
-    per_hop_guarantees = (inf, inf, inf, inf, 50e6, 10e6, 500e3, 150e3)
-    topo.update_guarantees_all_links(per_hop_guarantees)
+        #print(f"  -> centrality = {np.mean([x for x in nx.degree_centrality(G).values()])}")
+        #print(f"  -> betweenness = {np.mean([x for x in nx.betweenness_centrality(G).values()])}")
 
-    # prio = (0,   1,   2,   3,   4,     5,     6,     7    )
-    idle_slopes = (inf, inf, inf, inf, 100e6, 100e6, 100e6, 50e6)
-    topo.update_idle_slopes_all_links(idle_slopes)
+    JOINED_PDF = get_tmp_filepath(f"problem_gen/pdf-test-{SCENARIO}-{SIZE}-{HOW_MANY}.pdf")
+    os.system(f"pdfunite {' '.join(PDFS)} {JOINED_PDF}")
+    print(f"United PDFs to {link(JOINED_PDF)} ...")
 
-    JSON_FILE = get_tmp_filepath("problem_gen/json-test.json")
-    PDF_FILE = get_tmp_filepath("problem_gen/pdf-test.pdf")
+    if REMOVE_SMALL_PDFs:
+        for pdf in PDFS:
+            os.remove(pdf)
 
-    to_json(topo, JSON_FILE)
-    print(f"Exported JSON to {link(JSON_FILE)}")
 
-    bw_dict = {l: l.bandwidth for l in topo.links}
-    _, positions = topo_to_graph(topo)
-    visualize_topology(topo, bw_dict, pos=positions, filepath=PDF_FILE, title="Topology bandwidth overview")
-    print(f"Exported Visualization to {link(PDF_FILE)}")
+
+
+
+    # topo = two_layer_tree(num_layer1_switches=2, num_layer2_switches=4, hosts_per_l2switch=8, switch_link_speed=1e10, host_link_speed=1e9)
+    # bw_dict = {l: l.bandwidth for l in topo.links}
+    # G, positions = topo_to_graph(topo)
+    # PDFS = []
+    # for layout in "dot".split():
+    #     #positions = graphviz_layout(G, prog=layout, args="")
+    #     positions = {}
+    #     w = 3000
+    #     for i in range(2):
+    #         y = 150
+    #         x = [1200, 1800][i]
+    #         positions[f'sw_l1_{i}'] = (x,y)
+    #         for j in range(2):
+    #             y2 = 100
+    #             x2 = x + [-150, +150][j]
+    #             positions[f'sw_l2_{i * 2 + j}'] = (x2,y2)
+    #             for k in range(8):
+    #                 y3 = 50
+    #                 x3 = x2 + [-105, -75, -45, -15, +15, +45, +75, +105][k]
+    #                 positions[f'd_{i * 2 + j}_{k}'] = (x3,y3)
+    #     pprint(positions)
+    #     PDF_FILE = get_tmp_filepath(f"problem_gen/pdf-test-{layout}.pdf")
+    #     PDFS.append(PDF_FILE)
+    #     visualize_topology(topo, bw_dict, pos=positions, filepath=PDF_FILE, title="Topology bandwidth overview")
+    #     print(f"  Exported Visualization to {link(PDF_FILE)}")
+    # JOINED_PDF = get_tmp_filepath(f"problem_gen/pdf-test-united-graphviz-tree.pdf")
+    # os.system(f"pdfunite {' '.join(PDFS)} {JOINED_PDF}")
+    # print(f"United PDFs to {link(JOINED_PDF)} ...")
